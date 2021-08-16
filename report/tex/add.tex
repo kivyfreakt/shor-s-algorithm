@@ -4,5 +4,127 @@
 \textbf{Исходный код программы}
 \end{center}
 
+\begin{verbatim}
+import numpy as np
+# Importing standard Qiskit libraries
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, execute, circuit, IBMQ
+from qiskit.tools.jupyter import *
+from qiskit.visualization import *
+from ibm_quantum_widgets import *
+
+# Loading your IBM Quantum account(s)
+provider = IBMQ.load_account()
+
+from fractions import Fraction
+from math import gcd
+
+def c_amod15(power):
+    '''
+        Преобразование a^2^power mod 15
+        :param a: Случайное число, взаимно простое с N
+        :param power: Степень
+        :return: Вентиль преобразования
+    '''
+    U = QuantumCircuit(4)
+    for iteration in range(power):
+            U.swap(2,3)
+            U.swap(1,2)
+            U.swap(0,1)
+            for q in range(4):
+                U.x(q)
+    U = U.to_gate()
+    U.name = "7^%i mod 15" % power
+    c_U = U.control()
+    return c_U
+
+def inversed_qft(n):
+    '''
+        Обратное квантовое преобразование фурье
+        :param n: Количество входов квантового вентиля
+        :return: Вентиль обратного преобразования фурье
+    '''
+    qc = QuantumCircuit(n)
+    for qubit in range(n//2):
+        qc.swap(qubit, n-qubit-1)
+    for j in range(n):
+        for m in range(j):
+            qc.cp(-np.pi/float(2**(j-m)), m, j)
+        qc.h(j)
+    qc.name = "QFT-1"
+    return qc
+
+def shor_period(a, N):
+    '''
+        Квантовый алгоритм Шора для нахождения периода функции a^x mod N
+        :param a: Параметр функции a
+        :param N: Параметр функции N
+    '''
+    n_count = 8
+
+    qc = QuantumCircuit(QuantumRegister(8,'x'),QuantumRegister(4,'f(x)'),ClassicalRegister(8))
+
+    # инициализация расчетных кубитов в состоянии |+>
+    for q in range(n_count):
+        qc.h(q)
+
+    # вспомогательные регистры в состоянии |1>
+    qc.x(3+n_count)
+
+    # выполнение controlled-U операции
+    for q in range(n_count):
+        qc.append(c_amod15(2**q), [q] + [i+n_count for i in range(4)])
+
+    # выполнение QFT-1 операции
+    qc.append(inversed_qft(n_count), range(n_count))
+
+    # измерение рассчетных кубитов
+    qc.measure(range(n_count), range(n_count))
+
+    # вывод схемы на экран
+    print(qc)
+
+    # симуляция
+    qasm_sim = Aer.get_backend('qasm_simulator')
+    t_qc = transpile(qc, qasm_sim)
+    obj = assemble(t_qc, shots=2048)
+    result = qasm_sim.run(obj, memory=True).result()
+    readings = result.get_memory()
+
+    # вычисление периода
+    phase = int(readings[0], 2)/(2**n_count)
+    frac = Fraction(phase).limit_denominator(N)
+    r = frac.denominator
+    return r
+
+
+def factorization(N):
+    '''
+        Алгоритм факторизации чисел (поиск простых делителей числа)
+        :param N: Число, необходимое факторизовать
+    '''
+    a = 7
+    factor_found = False
+    attempt = 0
+    while not factor_found:
+        attempt += 1
+        print("\nПопытка %i:" % attempt)
+        phase = shor_period(a, N)
+        frac = Fraction(phase).limit_denominator(N)
+        r = frac.denominator
+        print("Период: r = %i" % r)
+        if phase != 0:
+            guesses = [gcd(a**(r//2)-1, N), gcd(a**(r//2)+1, N)]
+            for guess in guesses:
+                # проверка того, что угаданное число действительно является делителем
+                if guess not in [1, N] and (N % guess) == 0:
+                    print('Простые делители числа', N, ':', guess)
+                    factor_found = True
+                else:
+                    factor_found = False
+
+N = 15
+factorization(N)
+\end{verbatim}
+
 \newpage
 
