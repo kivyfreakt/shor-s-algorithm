@@ -7,7 +7,8 @@
 \begin{verbatim}
 import numpy as np
 # Importing standard Qiskit libraries
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, execute, circuit, IBMQ
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, \\
+execute, circuit, IBMQ
 from qiskit.tools.jupyter import *
 from qiskit.visualization import *
 from ibm_quantum_widgets import *
@@ -55,13 +56,16 @@ def inversed_qft(n):
 
 def shor_period(a, N):
     '''
-        Квантовый алгоритм Шора для нахождения периода функции a^x mod N
+        Квантовый алгоритм Шора для нахождения
+        периода функции a^x mod N
         :param a: Параметр функции a
         :param N: Параметр функции N
     '''
     n_count = 8
 
-    qc = QuantumCircuit(QuantumRegister(8,'x'),QuantumRegister(4,'f(x)'),ClassicalRegister(8))
+    qc = QuantumCircuit(QuantumRegister(8,'x'),
+                        QuantumRegister(4,'f(x)'),
+                        ClassicalRegister(8))
 
     # инициализация расчетных кубитов в состоянии |+>
     for q in range(n_count):
@@ -115,7 +119,6 @@ def factorization(N):
         if phase != 0:
             guesses = [gcd(a**(r//2)-1, N), gcd(a**(r//2)+1, N)]
             for guess in guesses:
-                # проверка того, что угаданное число действительно является делителем
                 if guess not in [1, N] and (N % guess) == 0:
                     print('Простые делители числа', N, ':', guess)
                     factor_found = True
